@@ -1,0 +1,5 @@
+#jpegcheck
+
+A small tool for checking the validity of jpeg files (JFIF), displaying their
+content (tables, data) or in some simple cases fixing errors in data.
+
