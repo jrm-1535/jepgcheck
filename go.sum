@@ -1,2 +1,4 @@
-github.com/jrm-1535/jpeg v0.0.0-20211110052554-7a483f8b85f7 h1:a9QbPj0fUZVylD067xUiej5eMbpYygY+ayER/FwQRpQ=
-github.com/jrm-1535/jpeg v0.0.0-20211110052554-7a483f8b85f7/go.mod h1:p6F5hhOO6/KOq+npKjeLefIfgpvUQwRGljU/590Yn8I=
+github.com/jrm-1535/exif v0.0.0-20220207234711-36984fb318e8 h1:UJSIhAfWDnqPrvIUFg82N0JNXQ9iDTW3uvZEoPLyiWY=
+github.com/jrm-1535/exif v0.0.0-20220207234711-36984fb318e8/go.mod h1:0DD4FTVvmB+ajFzznyJ1f9diIcldKIZwCx+dq2aNJr4=
+github.com/jrm-1535/jpeg v0.0.0-20220208040557-c4ae17a4358e h1:J+0mJECW2x7HQQj0WetyvYv1m4VPWnnSV3p1Grb4MUQ=
+github.com/jrm-1535/jpeg v0.0.0-20220208040557-c4ae17a4358e/go.mod h1:QjjlAwW9YLNnTbSYRHcQDFHslh46+RpL1KeqYTMS61M=
