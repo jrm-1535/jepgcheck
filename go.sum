@@ -1,4 +1,4 @@
-github.com/jrm-1535/exif v0.0.0-20220207234711-36984fb318e8 h1:UJSIhAfWDnqPrvIUFg82N0JNXQ9iDTW3uvZEoPLyiWY=
-github.com/jrm-1535/exif v0.0.0-20220207234711-36984fb318e8/go.mod h1:0DD4FTVvmB+ajFzznyJ1f9diIcldKIZwCx+dq2aNJr4=
-github.com/jrm-1535/jpeg v0.0.0-20220210045643-56cb8b96fc72 h1:u6M7yn7rDie62zr0b8I0aTZ9ncitMJ3zbn9AbZO4AG0=
-github.com/jrm-1535/jpeg v0.0.0-20220210045643-56cb8b96fc72/go.mod h1:QjjlAwW9YLNnTbSYRHcQDFHslh46+RpL1KeqYTMS61M=
+github.com/jrm-1535/exif v0.0.0-20220401231744-7eff3a0c91ba h1:mHGj8Ii5rXaP3+YcU5Qx13XbkzO5JJOYXaZrHAjC6og=
+github.com/jrm-1535/exif v0.0.0-20220401231744-7eff3a0c91ba/go.mod h1:0DD4FTVvmB+ajFzznyJ1f9diIcldKIZwCx+dq2aNJr4=
+github.com/jrm-1535/jpeg v0.0.0-20220402042026-14826d5681ed h1:ieNFOF8C7VfHtoCL7Vl3XKi8gwDUGPTYfLXd43YxfZw=
+github.com/jrm-1535/jpeg v0.0.0-20220402042026-14826d5681ed/go.mod h1:HC31Fp/kCo1Kzq6PeJAFkWQo0JZcMGJsrr1f/Le/eP0=

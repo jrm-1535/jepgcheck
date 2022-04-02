@@ -13,51 +13,91 @@ import (
 )
 
 const (
-    VERSION     = "0.2"
+    VERSION     = "0.3"
     BEGIN       = 0
     END         = (1<<bits.UintSize)-1
 
     HELP        = 
-`jcheck [-h] [-v] [-w] [-tidyup] [-rp] [-m] [-mcu] [-du] [-b=nn] [-e=pp] [-t]
-        [-meta=<a>[:<s>] [-qu=<d>s|x|b] [-en=<c>:<d>[:f]s|x|b] [-sc=<n>[:f]s|x|b]
-        [-rmeta=<a>:<s>] [-sthumb=<i>:<path>] [-o=name] filepath
+`jcheck [-h] [-v] [-oh=<class>]
+        [-w] [-rp] [-m] [-mcu] [-du] [-b=nn] [-e=pp]
+        [-t] [-meta=<a>[:<s>] [-qu=<d>s|x|b] [-en=<c>:<d>[:f]s|x|b] [-sc=<n>[:f]s|x|b]
+        [-tidyup] [-rmeta=<a>:<s>] [-sthumb=<i>:<path>] [-o=name] filepath
 
     Check if a file is a valid jpeg document, allowing to print internal
-    information about the jpeg encoding, to show errors during analysis
-    and to fix some minor errors in the jpeg file format.
+    information about the jpeg encoding, to show errors during analysis, to fix
+    a few minor errors in the jpeg file format, to save embedded thumbnails as
+    separate JPEG files and to save the raw decoded RGB data.
 
-    Options:
+    General options:
 
-        -h          print this help message and exits
-        -v          print jcheck version and exits
+        -h                      print this short help message and exit
+        -v                      print current jcheck version and exit
+        -oh=<class>             print longer <class> options help and exit
+                                <class> can be: parse, display, modify or save
 
+    Parsing options:                    for more details -oh=parse
+
+        -w                      warn about issues during parsing
+        -rp                     recursively parse embedded jpeg pictures
+        -m                      print markers as parsing goes
+        -mcu                    print detailed mcu parsing (very verbose)
+        -du                     print data units from mcu (extremely verbose)
+        -b=<nn>                 begin printing mcu/du at mcu #nn (default 0)
+        -e=<pp>                 end printing at mcu #pp (default end of scan)
+
+    Display options:                    for more details -oh=display
+
+        -t                      print jpeg tables in file order.
+        -meta=<a>[:<s>]*        print metadata from app segment(s).
+        -qu=<d>s|x|b            print quantization matrixes
+        -en=<c>:<d>[:<f>]s|x|b  print entropy tables.
+        -sc=<n>[:f]s|x|b        print scan information
+
+    Modification options:               for more details -oh=modify
+
+        -tidyup                 fix common errors and clean file during analysis
+        -rmeta=<a>[:<s>]        remove non-critical metadata from the file.
+
+    Saving options:                     for more details -oh=save
+
+        -sthumb=<t>:<p>         save embedded thumbnail into new file
+        -spict=[<o>[,<f>]:]<p>  Save main picture as raw RGB samples
+        -o name                 output the modified JPEG data to a new file
+
+    filepath is the path to the file to process
+
+`
+    PARSE_OPTIONS =
+`
     Parsing options:
 
         -w          warn about inconsistencies and errors during parsing
-        -tidyup     fix common errors and clean file after analyse
-        -rp         recursively parse embedded jpeg pictures (thumbnails).
+        -rp         recursively parse all embedded jpeg pictures (thumbnails).
         -m          print markers and offsets as parsing goes
         -mcu        print detailed mcu parsing (very verbose)
         -du         print each data unit extracted from mcu (extremely verbose)
-        -b=<nn>     begin printing mcu/du at mcu #nn (default 0)
+        -b=<nn>     begin printing mcu and/or du at mcu #nn (default 0)
         -e=<pp>     end printing mcu/du at mcu #pp (default end of scan)
 
+`
 
+    DISPLAY_OPTIONS = 
+`
     Display options:
 
-        -t          print all jpeg tables after parsing, including all
+         -t         print all jpeg tables after parsing, including all
                     quantization and entropy tables, in file order.
         -meta=<appId>[:<sid>]*[,<appId>[:<sid>]*
                     print metadata from app segments. The argument is the list
-                    of apps segment identified by their index n (0 for app0 to
+                    of app segments identified by their index n (0 for app0 to
                     15 for app15), or the special value -1 to print metadata
                     from all app segments, optionally followed by a list of
                     subset ids. This is intended for app segments that include
                     several containers, such as the app1 used with TIFF ifds.
-                    The following standard sids can be used: 1 for thumbnail
-                    ifd, 2 for exif ifd, 3 for gps ifd, 4 for interoperability
-                    ifd, 5 for maker note ifd and 6 for a possible maker-note
-                    embedded ifd.
+                    The following standard sids can be used: 0 for main (TIFF)
+                    ifd, 1 for thumbnail ifd, 2 for exif ifd, 3 for gps ifd, 4
+                    for interoperability ifd, 5 for maker note ifd and 6 for a
+                    possible maker-note embedded ifd.
                     For example, -meta=0,1:0:2 will show all metadata available
                     in app0 and only ifds 0 and 2 in app1 (exif) segment.
         -qu=<d>s|x|b[,<d>s|x|b]*
@@ -69,7 +109,7 @@ const (
                     standard if absent).
                     In case of quantization, the standard form is the list of
                     coefficients in zigzag order, whereas the extra from is the
-                    qunatization matrix ordered by rows.
+                    quantization matrix ordered by rows.
         -en=<c>:<d>[:<f>]s|x|b*[,<c>:<d>[:<f>*]s|x|b]*
                     print entropy tables.
                     c is the table class, DC or AC or *, d is the table
@@ -85,16 +125,15 @@ const (
                     In case of Huffman coding the standard form is the list od
                     code lengths and corresponding symbols, whereas the extra
                     form if the complete list of Huffman codes and corresponding
-                    symbols sorted by increasing code length
-        -sc=<n>[:f]s|x|b[,<n>[*f]s|x|b]*
-                    print scan information
-                    n is the scan segment index in frame f (frame 0 if omited).
-                    A frame has at least one scan segment (index n=0).
-                    The following letter, s, x or b requests respectively that
-                    a standard form, an extra version or both standard and
-                    extra version be used (default to standard if absent).
+                    symbols sorted by increasing code length.
 
+`
+
+    MODIFY_OPTIONS = 
+`
     Modification options:
+
+        -tidyup     fix common errors and clean file during analysis
         -rmeta=<id>[:<sid>]*[,<id>[:<sid>]]*
                     remove non-critical metadata information from the file.
                     id is the jpeg app segment id (0 to 15, for app0 to app15)
@@ -112,6 +151,10 @@ const (
                     and keep most of the APP1 (tiff/exif) ifds, removing only
                     the maker note (5) and the embedded preview picture (6).
 
+`
+
+    SAVE_OPTIONS =
+`
     Saving options
         -sthumb=<tid>:<path>[,<tid>:<path>]
                     save thumbnail identified by id. A JFIF file may include a
@@ -120,12 +163,39 @@ const (
                     Each thumbnail image is stored in a new file at their given
                     path. By convention, tid=0 refers always the main thumbnail
                     and tid=1 refers to a possible additional preview image.
-        -o  name    output the modified JPEF data to a new file
+        -spict=[<orientation>[,<format>]:]<path>
+                    save the main picture possibly after transformation required
+                    by <orientation> in the requested <format>.
+                    <orientation> is similar to the tiff/exif orientation tag.
+                    It is optional and if missing the tiff/exif value is used
+                    if available, otherwise the default picture orientation is
+                    used. <orientation> can be given as:
+                    TL (top side row 0, left side col 0: default)
+                    TR (top side row 0, right side col 0: vertical mirror)
+                    BR (bottom side row 0, right side col 0: 180 degree
+                       clockwise rotation)
+                    BL (bottom side row 0, left side col 0: horizontal mirror)
+                    LT (left side row 0, top side col 0: horizontal mirror and
+                        90 degree clockwise rotation)
+                    RT (right side row 0, top side col 0: 90 degree clockwise
+                        rotation)
+                    RB (right side row 0, bottom side col 0: vertical mirror
+                        and 90 degree clockwise rotation)
+                    LB (left side row 0, bottom side col 0: 270 degree
+                        clockwise rotation)
+                    <format> indicates whether the picture should be stored as
+                    color (RGB) or as black and white (Y). It is optional and
+                    if missing it is assumed to mean using all available color
+                    components. <format> can be given as either BW or RGB.  
+                    Therefore, if BW is not specified and all Y, Cb, Cr are
+                    available, the picture is stored as packed RGB (3 bytes per
+                    pixel), otherwise it is stored as 1 byte (Y) per pixel.
+                    Note that if <format> is given, a leading comma ',' is
+                    required even if <orientation> is missing.
+        -o  name    output the modified JPEG data to a new file
                     this option is meaningful if -rmeta and/or -tydyip were
                     specified (if nothing was modified, the files will be
                     similar if not identical).
-
-    filepath is the path to the file to process
 
 `
 )
@@ -151,6 +221,13 @@ type metaIds struct {
     sIds            []int
 }
 
+type storeParameters struct {
+    row0        jpeg.VisualSide
+    col0        jpeg.VisualSide
+    bw          bool
+    path        string
+}
+
 type jpgArgs struct {
     input, output   string
     control         jpeg.Control
@@ -161,6 +238,70 @@ type jpgArgs struct {
     scTables        []scTable
     rmActions       []metaIds
     svActions       []jpeg.ThumbSpec
+    sPicture        storeParameters
+}
+
+var format = [...]string { "BW", "RGB" }
+func getFormat( f string ) (bool, error) {
+    for i, fs := range format {
+        if f == fs {
+            return i == 0, nil
+        }
+    }
+    return false, fmt.Errorf("format %s is not recognized\n", f )
+}
+
+var orientation = [...]string { "TL", "TR", "BR", "BL", "LT", "RT", "RB", "LB" }
+func getOrientation( o string ) (r, c jpeg.VisualSide, err error) {
+    for i, os := range orientation {
+        if o == os {
+            switch i {
+            case 0: r = jpeg.Top; c = jpeg.Left
+            case 1: r = jpeg.Top; c = jpeg.Right
+            case 2: r = jpeg.Bottom; c = jpeg.Right
+            case 3: r = jpeg.Bottom; c = jpeg.Left
+            case 4: r = jpeg.Left; c = jpeg.Top
+            case 5: r = jpeg.Right; c = jpeg.Top
+            case 6: r = jpeg.Right; c = jpeg.Bottom
+            case 7: r = jpeg.Left; c = jpeg.Bottom
+            }
+            return
+        }
+    }
+    err = fmt.Errorf("orientation %s is not recognized\n", o )
+    return
+}
+
+// undefined orientation is indicated by row0 and col0 both zero
+func parseSpict( spict string ) ( res storeParameters, err error ) {
+    parts := strings.Split( spict, ":" )
+    if len(parts) > 2 {
+        return res, fmt.Errorf("Save picture: syntax error: too many ':' in %s\n",
+                                spict )
+    }
+    if len(parts) == 2 {
+        spict = parts[1]
+        part := parts[0]
+        params := strings.Split( part, "," )
+        if len(params) > 2 {
+            return res, fmt.Errorf("Save picture: syntax error: too many ',' in %s\n",
+                                    part )
+        }
+        if len(params) == 2 {
+            res.bw, err = getFormat( params[1] )
+            if err != nil {
+                return res, fmt.Errorf("Save picture: syntax error: %v\n", err)
+            }
+        }
+        if params[0] != "" {
+            res.row0, res.col0, err = getOrientation( params[0] )
+            if err != nil {
+                return res, fmt.Errorf("Save picture: syntax error: %v\n", err)
+            }
+        }
+    }
+    res.path = spict
+    return
 }
 
 func parseSthumb( sthumb string ) (res []jpeg.ThumbSpec, err error) {
@@ -169,7 +310,7 @@ func parseSthumb( sthumb string ) (res []jpeg.ThumbSpec, err error) {
     for _, part := range parts {
         specs := strings.Split( part, ":" )
         if len(specs) != 2 {
-            return nil, fmt.Errorf("Extract Thumbnails: missing path or id: %s\n",
+            return nil, fmt.Errorf("Save Thumbnails: missing path or id: %s\n",
                                    part )
         }
 
@@ -369,6 +510,19 @@ func parseEntropy( entropy string ) (res []enTable, err error) {
     return res, nil
 }
 
+var classes = [...]string{ "parse", "display", "modify", "save" }
+var help    = [...]string{ PARSE_OPTIONS, DISPLAY_OPTIONS, MODIFY_OPTIONS, SAVE_OPTIONS }
+func optionHelp( c string ) {
+    for i := 0; i < len(classes); i++ {
+        if classes[i] == c {
+            fmt.Fprintf( flag.CommandLine.Output(), help[i] )
+            os.Exit(0)                
+        }
+    }
+    fmt.Printf( "Unknown option class: %s\n", c )
+    os.Exit(2)
+}
+
 func getArgs( ) (* jpgArgs, error) {
 
     pArgs := new( jpgArgs )
@@ -393,23 +547,28 @@ func getArgs( ) (* jpgArgs, error) {
     flag.StringVar( &entropy, "en", "", "print entropy tables" )
     var scan string
     flag.StringVar( &scan, "sc", "", "print scan tables" )
-    // TODO: printMeta
-
     var remove string
     flag.StringVar( &remove, "rmeta", "", "remove metadata" )
-
     var sthumb string
     flag.StringVar( &sthumb, "sthumb", "", "save embedded thumbnail in a new file" )
+    var spict string
+    flag.StringVar( &spict, "spict", "", "save decompressed picture in a new file" )
     flag.StringVar( &pArgs.output, "o", "", "output modified JPEG data to the file`name`" )
+    var soptions string
+    flag.StringVar( &soptions, "oh", "", "detailed options help" )
 
     flag.Usage = func() {
         fmt.Fprintf( flag.CommandLine.Output(), HELP )
     }
     flag.Parse()
     if version {
-        fmt.Printf( "pdfCheck version %s\n", VERSION )
+        fmt.Fprintf( flag.CommandLine.Output(), "pdfCheck version %s\n", VERSION )
         os.Exit(0)
     }
+    if soptions != "" {
+        optionHelp( soptions )
+    }
+
     arguments := flag.Args()
     if len( arguments ) < 1 {
         fmt.Printf( "Missing the name of the file to process\n" )
@@ -474,6 +633,18 @@ func getArgs( ) (* jpgArgs, error) {
         }
 // end debug
         pArgs.svActions = svActions
+    }
+
+    if spict != "" {
+        sparams, err := parseSpict( spict )
+        if err != nil {
+            return nil, fmt.Errorf( "getArgs: %w", err )
+        }
+// Debug
+        fmt.Printf( "Save picture: orientation row0=%v col0=%v BW=%v to path %s\n",
+                    sparams.row0, sparams.col0, sparams.bw, sparams.path )
+// end debug
+        pArgs.sPicture = sparams
     }
 
     if pArgs.output == "" {
@@ -699,8 +870,68 @@ func main() {
             n, err = jpg.Write( process.output )
             if err != nil {
                 fmt.Printf( "jpegcheck: %v", err )
+                return
             } else {
                 fmt.Printf( "jpegcheck: written %d bytes\n", n )
+            }
+        }
+        // FIXME
+        if err == nil {
+            _, err = jpg.FormatFrameComponent( os.Stdout, 0, 0 )
+            if err != nil {
+                fmt.Printf( "jpegcheck: %v", err )
+                return
+            }
+            _, err = jpg.FormatFrameComponent( os.Stdout, 0, 1 )
+            if err != nil {
+                fmt.Printf( "jpegcheck: %v", err )
+                return
+            }
+            _, err = jpg.FormatFrameComponent( os.Stdout, 0, 2 )
+            if err != nil {
+                fmt.Printf( "jpegcheck: %v", err )
+                return
+            }
+        }
+/*
+        _, err = jpg.MakeFrameRawPicture( 0 )
+        if err != nil {
+            fmt.Printf( "jpegcheck: %v", err )
+            return
+        }
+*/
+        if process.sPicture.path != "" {
+            var orientation *jpeg.Orientation
+            if process.sPicture.row0 == 0 && process.sPicture.col0 == 0 {
+                orientation, err = jpg.GetImageOrientation()
+                if err != nil {
+                    fmt.Printf( "jpegcheck: save picture: no tiff/exif orientation specified: %v", err )
+                } else {
+                    fmt.Printf( "jpegcheck: save picture using tiff/exif orientation:\n" )
+                    side := []string { "Left", "Top", "Right", "Bottom" }
+                    effect := []string {
+                            "None", "VerticalMirror", "Rotate90",
+                            "VerticalMirrorRotate90", "HorizontalMirror",
+                            "Rotate180", "HorizontalMirrorRotate90", "Rotate270" }
+                    fmt.Printf( "  Source app%d Row 0 at %s, Column 0 at %s (effect: %s)\n",
+                                orientation.AppSource, 
+                                side[orientation.Row0], side[orientation.Col0],
+                                effect[orientation.Effect] )
+                }
+            } else {
+                orientation = new(jpeg.Orientation)
+                orientation.Row0 = process.sPicture.row0
+                orientation.Col0 = process.sPicture.col0
+            }
+            var nc, nr uint
+            var n int
+            nc, nr, n, err = jpg.SaveRawPicture(process.sPicture.path,
+                                                process.sPicture.bw, orientation)
+            if err != nil {
+                fmt.Printf( "jpegcheck: save picture: %v", err )
+            } else {
+                fmt.Printf( "Saved %s as nCols=%d nRows=%d size %d\n",
+                            process.sPicture.path, nc, nr, n )
             }
         }
     }
