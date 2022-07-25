@@ -1,5 +1,9 @@
 #jpegcheck
 
-A small tool for checking the validity of jpeg files (JFIF), displaying their
-content (tables, data) or in some simple cases fixing errors in data.
+A small tool for checking the validity of jpeg files (JFIF and EXIF), displaying
+their content (tables, scans) or in some simple cases fixing errors in data.
 
+A raw RGB picture file can be created after decoding.
+
+Baseline sequential, extended sequential and progressive are supported only
+in huffman mode. No arithmetic coding and no hierarchical modes yet.

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-    VERSION     = "0.3"
+    VERSION     = "0.4"
     BEGIN       = 0
     END         = (1<<bits.UintSize)-1
 
@@ -26,7 +26,8 @@ const (
     Check if a file is a valid jpeg document, allowing to print internal
     information about the jpeg encoding, to show errors during analysis, to fix
     a few minor errors in the jpeg file format, to save embedded thumbnails as
-    separate JPEG files and to save the raw decoded RGB data.
+    separate JPEG files and to save the raw decoded RGB data. Without options it
+    just prints a short summary of the file contents.
 
     General options:
 
@@ -38,6 +39,7 @@ const (
     Parsing options:                    for more details -oh=parse
 
         -w                      warn about issues during parsing
+        -x                      print extra information about frames
         -rp                     recursively parse embedded jpeg pictures
         -m                      print markers as parsing goes
         -mcu                    print detailed mcu parsing (very verbose)
@@ -51,7 +53,7 @@ const (
         -meta=<a>[:<s>]*        print metadata from app segment(s).
         -qu=<d>s|x|b            print quantization matrixes
         -en=<c>:<d>[:<f>]s|x|b  print entropy tables.
-        -sc=<n>[:f]s|x|b        print scan information
+        -sc=<n>[:<f>]s|x|b      print scan information
 
     Modification options:               for more details -oh=modify
 
@@ -72,6 +74,7 @@ const (
     Parsing options:
 
         -w          warn about inconsistencies and errors during parsing
+        -x          print extra information when parsing frame and scan headers
         -rp         recursively parse all embedded jpeg pictures (thumbnails).
         -m          print markers and offsets as parsing goes
         -mcu        print detailed mcu parsing (very verbose)
@@ -87,17 +90,17 @@ const (
 
          -t         print all jpeg tables after parsing, including all
                     quantization and entropy tables, in file order.
-        -meta=<appId>[:<sid>]*[,<appId>[:<sid>]*
+        -meta=<a>[:<s>]*[,<a>[:<s>]*
                     print metadata from app segments. The argument is the list
-                    of app segments identified by their index n (0 for app0 to
+                    of app segments identified by their index a (0 for app0 to
                     15 for app15), or the special value -1 to print metadata
                     from all app segments, optionally followed by a list of
                     subset ids. This is intended for app segments that include
                     several containers, such as the app1 used with TIFF ifds.
-                    The following standard sids can be used: 0 for main (TIFF)
-                    ifd, 1 for thumbnail ifd, 2 for exif ifd, 3 for gps ifd, 4
-                    for interoperability ifd, 5 for maker note ifd and 6 for a
-                    possible maker-note embedded ifd.
+                    The following standard subset ids s can be used: 0 for main
+                    (TIFF) ifd, 1 for thumbnail ifd, 2 for exif ifd, 3 for gps
+                    ifd, 4 for interoperability ifd, 5 for maker note ifd and 6
+                    for a possible maker-note embedded ifd.
                     For example, -meta=0,1:0:2 will show all metadata available
                     in app0 and only ifds 0 and 2 in app1 (exif) segment.
         -qu=<d>s|x|b[,<d>s|x|b]*
@@ -110,7 +113,7 @@ const (
                     In case of quantization, the standard form is the list of
                     coefficients in zigzag order, whereas the extra from is the
                     quantization matrix ordered by rows.
-        -en=<c>:<d>[:<f>]s|x|b*[,<c>:<d>[:<f>*]s|x|b]*
+        -en=<c>:<d>[:<f>]s|x|b[,<c>:<d>[:<f>]s|x|b]*
                     print entropy tables.
                     c is the table class, DC or AC or *, d is the table
                     destination, from 0 to 4, or * for all destinations within
@@ -126,6 +129,16 @@ const (
                     code lengths and corresponding symbols, whereas the extra
                     form if the complete list of Huffman codes and corresponding
                     symbols sorted by increasing code length.
+        -sc=<n>[:<f>]s|x|b[,<n>[:<f>*]s|x|b]*
+                    print scan information.
+                    n is the scan number within a frame, in case of progressive
+                    modes. It can be given as * for all scans in the frame. In
+                    case of sequential modes, * is equivalent to 0.
+                    f is the frame number. It is optional and if missing it is
+                    assumed to be 0.
+                    The following letter, s, x or b requests respectively that
+                    a standard form, an extra version or both standard and
+                    extra version be used (default to standard if absent).
 
 `
 
@@ -396,7 +409,7 @@ func parseScan( scan string ) (res []scTable, err error) {
         if specs[0] == "*" {
             index = -1
         } else {
-            v, err := strconv.ParseInt(specs[0], 0, 64); if err != nil || v < 0 || v > 3 {
+            v, err := strconv.ParseInt(specs[0], 0, 64); if err != nil || v < 0 {
                 return nil, fmt.Errorf(
                     "invalid Scan table index: %s\n", specs[0] )
             }
@@ -531,6 +544,7 @@ func getArgs( ) (* jpgArgs, error) {
     flag.BoolVar( &version, "v", false, "print jcheck version and exits" )
     flag.BoolVar( &pArgs.control.Markers, "m", false, "print markers and offsets as parsing goes" )
     flag.BoolVar( &pArgs.control.Warn, "w", false, "warn of errors during parsing" )
+    flag.BoolVar( &pArgs.control.Verbose, "x", false, "print extra header information during parsing" )
     flag.BoolVar( &pArgs.control.Mcu, "mcu", false, "print minimum coded unit processing" )
     flag.BoolVar( &pArgs.control.Du, "du", false, "print resulting data unit" )
     flag.UintVar( &pArgs.control.Begin, "b", BEGIN, "begin printing mcu/du at mcu #nn (default 0)" )
@@ -875,29 +889,13 @@ func main() {
                 fmt.Printf( "jpegcheck: written %d bytes\n", n )
             }
         }
-        // FIXME
-        if err == nil {
-            _, err = jpg.FormatFrameComponent( os.Stdout, 0, 0 )
-            if err != nil {
-                fmt.Printf( "jpegcheck: %v", err )
-                return
-            }
-            _, err = jpg.FormatFrameComponent( os.Stdout, 0, 1 )
-            if err != nil {
-                fmt.Printf( "jpegcheck: %v", err )
-                return
-            }
-            _, err = jpg.FormatFrameComponent( os.Stdout, 0, 2 )
-            if err != nil {
-                fmt.Printf( "jpegcheck: %v", err )
-                return
-            }
-        }
 /*
-        _, err = jpg.MakeFrameRawPicture( 0 )
-        if err != nil {
-            fmt.Printf( "jpegcheck: %v", err )
-            return
+        if err == nil {
+            _, err = jpg.FormatFrameComponent( os.Stdout, 0, -1 )
+            if err != nil {
+                fmt.Printf( "jpegcheck: %v", err )
+                return
+            }
         }
 */
         if process.sPicture.path != "" {
@@ -905,7 +903,7 @@ func main() {
             if process.sPicture.row0 == 0 && process.sPicture.col0 == 0 {
                 orientation, err = jpg.GetImageOrientation()
                 if err != nil {
-                    fmt.Printf( "jpegcheck: save picture: no tiff/exif orientation specified: %v", err )
+                    fmt.Printf( "Warning: no tiff/exif orientation specified: %v", err )
                 } else {
                     fmt.Printf( "jpegcheck: save picture using tiff/exif orientation:\n" )
                     side := []string { "Left", "Top", "Right", "Bottom" }
